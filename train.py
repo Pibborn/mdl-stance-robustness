@@ -97,6 +97,11 @@ def train_config(parser):
                         help='random seed for data shuffling, embedding init, etc.')
     parser.add_argument('--task_config_path', type=str, default='configs/tasks_config.json')
 
+    # debias subnetwork
+    parser.add_argument('--debias', type=bool, default=False)
+    parser.add_argument('--debias_layers', type=int, default=2)
+    parser.add_argument('--debias_width', type=int, default=30)
+
     return parser
 
 parser = argparse.ArgumentParser()
@@ -232,8 +237,10 @@ def main():
                                 maxlen=args.max_seq_len,
                                 pairwise=pw_task,
                                 data_type=data_type,
-                                task_type=task_type)
+                                task_type=task_type,
+                                debias=args.debias)
         train_data_list.append(train_data)
+
 
     opt['answer_opt'] = decoder_opts
     opt['tasks_dropout_p'] = dropout_list

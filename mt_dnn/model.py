@@ -12,6 +12,7 @@ from data_utils.utils import AverageMeter
 from pytorch_pretrained_bert import BertAdam as Adam
 from module.bert_optim import Adamax
 from module.my_optim import EMA
+from module.debias_network import DebiasNetwork
 from .matcher import SANBertNetwork
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,12 @@ class MTDNNModel(object):
             y = Variable(labels.cuda(async=True), requires_grad=False)
         else:
             y = Variable(labels, requires_grad=False)
+        if batch_meta['debias']:
+            debias_labels = batch_data[batch_meta['debias_label']]
+            if self.config['cuda']:
+                y_bias = Variable(debias_labels.cuda(async=True), requires_grad=False)
+            else:
+                y_bias = Variable(debias_labels, requires_grad=False)
         task_id = batch_meta['task_id']
         task_type = batch_meta['task_type']
         inputs = batch_data[:batch_meta['input_len']]
@@ -120,7 +127,10 @@ class MTDNNModel(object):
             inputs.append(None)
             inputs.append(None)
         inputs.append(task_id)
-        logits = self.mnetwork(*inputs)
+        if self.config['debias']:
+            logits, debias_logits = self.mnetwork(*inputs)
+        else:
+            logits = self.mnetwork(*inputs)
         if batch_meta['pairwise']:
             logits = logits.view(-1, batch_meta['pairwise_size'])
 
@@ -133,11 +143,15 @@ class MTDNNModel(object):
                 loss = torch.mean(F.mse_loss(logits.squeeze(), y, reduce=False) * weight)
             else:
                 loss = torch.mean(F.cross_entropy(logits, y, reduce=False) * weight)
+            if self.config['debias']:
+                loss += torch.mean(F.cross_entropy(debias_logits, y_bias, reduce=False) * weight)
         else:
             if task_type > 0:
                 loss = F.mse_loss(logits.squeeze(), y)
             else:
                 loss = F.cross_entropy(logits, y)
+            if self.config['debias']:
+                loss += torch.mean(F.cross_entropy(debias_logits, y_bias, reduce=False))
 
         self.train_loss.update(loss.item(), logits.size(0))
         self.optimizer.zero_grad()
@@ -159,7 +173,10 @@ class MTDNNModel(object):
             inputs.append(None)
             inputs.append(None)
         inputs.append(task_id)
-        score = self.mnetwork(*inputs)
+        if self.config['debias']:
+            score, debias_score = self.mnetwork(*inputs)
+        else:
+            score = self.mnetwork(*inputs)
         if batch_meta['pairwise']:
             score = score.contiguous().view(-1, batch_meta['pairwise_size'])
             if task_type < 1:

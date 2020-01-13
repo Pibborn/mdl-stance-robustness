@@ -9,6 +9,7 @@ from torch.autograd import Variable
 from module.dropout_wrapper import DropoutWrapper
 from pytorch_pretrained_bert.modeling import BertConfig, BertEncoder, BertLayerNorm, BertModel
 from module.san import SANClassifier, Classifier
+from module.sub_layers import GradientReversal
 
 class SANBertNetwork(nn.Module):
     def __init__(self, opt, bert_config=None):
@@ -39,6 +40,19 @@ class SANBertNetwork(nn.Module):
             else:
                 out_proj = nn.Linear(self.bert_config.hidden_size, lab)
                 self.scoring_list.append(out_proj)
+
+        if opt['debias']:
+            n_layers = opt['debias_layers']
+            width = opt['debias_width']
+            prev_width = self.bert_config.hidden_size
+            self.debias_proj = nn.ModuleList()
+            self.debias_proj.append(GradientReversal())
+            for i in range(n_layers - 1):
+                layer = nn.Linear(prev_width, width)
+                prev_width = width
+                self.debias_proj.append(layer)
+            layer = nn.Linear(width, len(opt['train_datasets']))
+            self.debias_proj.append(layer)
 
         self.opt = opt
         self._my_init()
@@ -113,4 +127,10 @@ class SANBertNetwork(nn.Module):
         else:
             pooled_output = self.dropout_list[task_id](pooled_output)
             logits = self.scoring_list[task_id](pooled_output)
+        if self.opt['debias']:
+            x = pooled_output
+            for fc_layer in self.debias_proj:
+                x = fc_layer(x)
+            debias_logits = x
+            return logits, debias_logits
         return logits

@@ -22,7 +22,8 @@ class BatchGen:
                  pairwise=False,
                  task=None,
                  task_type=0,
-                 data_type=0):
+                 data_type=0,
+                 debias=False):
         self.batch_size = batch_size
         self.maxlen = maxlen
         self.is_train = is_train
@@ -33,13 +34,18 @@ class BatchGen:
         self.pairwise = pairwise
         self.pairwise_size = 1
         self.data_type = data_type
-        self.task_type=task_type
+        self.task_type = task_type
+        self.debias = debias
         if do_batch:
             if is_train:
                 indices = list(range(len(self.data)))
                 random.shuffle(indices)
                 data = [self.data[i] for i in indices]
+                if self.debias:
+                    debias_data = [self.task_type for _ in indices]
             self.data = BatchGen.make_baches(data, batch_size)
+            if self.debias:
+                self.debias_data = BatchGen.make_baches(debias_data, batch_size)
         self.offset = 0
         self.dropout_w = dropout_w
 
@@ -109,6 +115,8 @@ class BatchGen:
             batch = self.data[self.offset]
             if self.pairwise:
                 batch = self.rebacth(batch)
+            if self.debias:
+                debias_batch = self.debias_data[self.offset]
             batch_size = len(batch)
             batch_dict = {}
             tok_len = max(len(x['token_id']) for x in batch)
@@ -119,7 +127,6 @@ class BatchGen:
             if self.data_type < 1:
                 premise_masks = torch.ByteTensor(batch_size, tok_len).fill_(1)
                 hypothesis_masks = torch.ByteTensor(batch_size, hypothesis_len).fill_(1)
-
             for i, sample in enumerate(batch):
                 select_len = min(len(sample['token_id']), tok_len)
                 tok = sample['token_id']
@@ -160,7 +167,11 @@ class BatchGen:
                     batch_data.append(torch.FloatTensor(labels))
                 else:
                     batch_data.append(torch.LongTensor(labels))
+                if self.debias:
+                    batch_data.append(torch.LongTensor(debias_batch))
                 batch_info['label'] = current_idx
+                current_idx += 1
+                batch_info['debias_label'] = current_idx
                 current_idx += 1
 
             if self.gpu:
@@ -185,6 +196,7 @@ class BatchGen:
             batch_info['pairwise'] = self.pairwise
             batch_info['pairwise_size'] = self.pairwise_size
             batch_info['task_type'] = self.task_type
+            batch_info['debias'] = self.debias
             if not self.is_train:
                 labels = [sample['label'] for sample in batch]
                 batch_info['label'] = labels

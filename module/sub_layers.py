@@ -24,3 +24,14 @@ class LayerNorm(nn.Module):
         mu = torch.mean(x, 2, keepdim=True).expand_as(x)
         sigma = torch.std(x, 2, keepdim=True).expand_as(x)
         return (x - mu) / (sigma + self.eps) * self.alpha.expand_as(x) + self.beta.expand_as(x)
+
+class GradientReversal(nn.Module):
+    def __init__(self, mul=1):
+        super(GradientReversal, self).__init__()
+        self.mul = mul
+
+    def forward(self, x):
+        return x
+
+    def backward(self, grad_output):
+        return -grad_output*self.mul
