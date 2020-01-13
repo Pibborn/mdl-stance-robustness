@@ -12,7 +12,6 @@ from data_utils.utils import AverageMeter
 from pytorch_pretrained_bert import BertAdam as Adam
 from module.bert_optim import Adamax
 from module.my_optim import EMA
-from module.debias_network import DebiasNetwork
 from .matcher import SANBertNetwork
 
 logger = logging.getLogger(__name__)
