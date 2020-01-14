@@ -150,7 +150,10 @@ class MTDNNModel(object):
             else:
                 loss = F.cross_entropy(logits, y)
             if self.config['debias']:
-                loss += torch.mean(F.cross_entropy(debias_logits, y_bias, reduce=False))
+                if y_bias.size()[0] != debias_logits.size()[0]: # unclear why we need this
+                    y_bias_len = y_bias.size()[0]
+                    debias_logits = debias_logits[:y_bias_len]
+                loss += torch.mean(F.cross_entropy(debias_logits, y_bias))
 
         self.train_loss.update(loss.item(), logits.size(0))
         self.optimizer.zero_grad()

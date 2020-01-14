@@ -131,6 +131,6 @@ class SANBertNetwork(nn.Module):
             x = pooled_output
             for fc_layer in self.debias_proj:
                 x = fc_layer(x)
-            debias_logits = x
+            debias_logits = F.softmax(x)
             return logits, debias_logits
         return logits
