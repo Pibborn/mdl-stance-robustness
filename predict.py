@@ -94,7 +94,9 @@ def train_config(parser):
                         help='random seed for data shuffling, embedding init, etc.')
     parser.add_argument('--task_config_path', type=str, default='configs/tasks_config.json')
     parser.add_argument('--dump_to_checkpoints', type=int, default=1) # whether or not to dump the results to checkpoints folder
-
+    parser.add_argument('--debias', type=bool, default=False)
+    parser.add_argument('--debias_layers', type=int, default=2)
+    parser.add_argument('--debias_width', type=int, default=30)
     return parser
 
 parser = argparse.ArgumentParser()

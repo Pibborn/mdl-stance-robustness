@@ -26,7 +26,7 @@ optim="adamax"
 grad_clipping=0
 global_grad_clipping=1
 lr="5e-5"
-epochs=5
+epochs=1
 max_seq_len=100 # for the longer stress tests it will automatically choose 512
 dump_to_checkpoints=1 # if 0, only dumps results to result folder
 train_data_ratio=$4
@@ -40,5 +40,5 @@ for seed in "${seeds[@]}" ; do
     BERT_PATH="${model_dir}/model.pt"
     cp "../mt_dnn_models/vocab.txt" $model_dir
     log_file="${model_dir}/log.log"
-    python ../predict.py --train_data_ratio ${train_data_ratio} --dump_to_checkpoints ${dump_to_checkpoints} --stress_tests ${stress_tests} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${test_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr} --multi_gpu_on
+    python ../predict.py --train_data_ratio ${train_data_ratio} --dump_to_checkpoints ${dump_to_checkpoints} --stress_tests ${stress_tests} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${test_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr} --multi_gpu_on --debias True
 done

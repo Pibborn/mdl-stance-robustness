@@ -6,6 +6,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import *
 from data_utils.utils import AverageMeter
