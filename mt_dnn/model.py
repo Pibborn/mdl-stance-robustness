@@ -21,6 +21,7 @@ class MTDNNModel(object):
     def __init__(self, opt, state_dict=None, num_train_step=-1):
         self.config = opt
         self.updates = state_dict['updates'] if state_dict and 'updates' in state_dict else 0
+        self.local_updates = 0
         self.train_loss = AverageMeter()
         self.network = SANBertNetwork(opt)
 
@@ -86,6 +87,7 @@ class MTDNNModel(object):
         if opt['ema_opt'] > 0:
             self.ema = EMA(self.config['ema_gamma'], self.network)
         self.para_swapped = False
+        self.optimizer.zero_grad()
 
     def setup_ema(self):
         if self.config['ema_opt']:
@@ -151,21 +153,27 @@ class MTDNNModel(object):
             else:
                 loss = F.cross_entropy(logits, y)
             if self.config['debias']:
-                if y_bias.size()[0] != debias_logits.size()[0]: # unclear why we need this
+                if y_bias.size()[0] < debias_logits.size()[0]: # unclear why we need this
                     y_bias_len = y_bias.size()[0]
                     debias_logits = debias_logits[:y_bias_len]
+                elif y_bias.size()[0] > debias_logits.size()[0]:
+                    debias_logits_len = debias_logits.size()[0]
+                    y_bias = y_bias[:debias_logits_len]
                 loss += torch.mean(F.cross_entropy(debias_logits, y_bias))
 
         self.train_loss.update(loss.item(), logits.size(0))
         self.optimizer.zero_grad()
 
         loss.backward()
-        if self.config['global_grad_clipping'] > 0:
-            torch.nn.utils.clip_grad_norm_(self.network.parameters(),
-                                          self.config['global_grad_clipping'])
-        self.optimizer.step()
-        self.updates += 1
-        self.update_ema()
+        self.local_updates += 1
+        if self.local_updates % self.config.get('gradient_accumulation_step', 1) == 0:
+            if self.config['global_grad_clipping'] > 0:
+                torch.nn.utils.clip_grad_norm_(self.network.parameters(),
+                                              self.config['global_grad_clipping'])
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+            self.updates += 1
+            self.update_ema()
 
     def predict(self, batch_meta, batch_data):
         self.network.eval()
