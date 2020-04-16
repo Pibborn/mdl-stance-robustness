@@ -183,8 +183,6 @@ def dump_result_files(dataset):
 def main():
     logger.info('Launching the MT-DNN training')
     opt = vars(args)
-    print(opt)
-    exit(1)
     # update data dir
     opt['data_dir'] = data_dir
     batch_size = args.batch_size
