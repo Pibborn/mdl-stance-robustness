@@ -100,9 +100,10 @@ def train_config(parser):
     parser.add_argument('--debias', type=bool, default=False)
     parser.add_argument('--debias_layers', type=int, default=2)
     parser.add_argument('--debias_width', type=int, default=30)
+    parser.add_argument('--lambda', type=float, default=1.,
+                        help='Multiplying factor for the debiasing loss')
     # gradient accumulation
     parser.add_argument('--grad_accumulation_step', type=int, default=1)
-
 
     return parser
 
@@ -182,6 +183,8 @@ def dump_result_files(dataset):
 def main():
     logger.info('Launching the MT-DNN training')
     opt = vars(args)
+    print(opt)
+    exit(1)
     # update data dir
     opt['data_dir'] = data_dir
     batch_size = args.batch_size
