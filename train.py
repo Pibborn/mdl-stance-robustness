@@ -392,13 +392,13 @@ def main():
                     str((datetime.now() - start) / (i + 1) * (len(all_indices) - i - 1)).split('.')[0]))
             if args.dump_representations and epoch == 0:
                 if repr_array is None:
-                    repr_array = repr.detach().numpy()
+                    repr_array = repr.detach().cpu().numpy()
                     task_array = np.array([task_id for _ in range(args.batch_size)])
-                    label_array = batch_data[batch_meta['label']].numpy()
+                    label_array = batch_data[batch_meta['label']].cpu().numpy()
                 else:
-                    repr_array = np.vstack((repr_array, repr.detach().numpy()))
+                    repr_array = np.vstack((repr_array, repr.detach().cpu().numpy()))
                     task_array = np.hstack((task_array, np.array([task_id for _ in range(args.batch_size)])))
-                    label_array = np.hstack((label_array, batch_data[batch_meta['label']].numpy()))
+                    label_array = np.hstack((label_array, batch_data[batch_meta['label']].cpu().numpy()))
             break
 
 
