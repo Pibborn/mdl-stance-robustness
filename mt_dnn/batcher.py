@@ -42,7 +42,7 @@ class BatchGen:
                 random.shuffle(indices)
                 data = [self.data[i] for i in indices]
                 if self.debias:
-                    debias_data = [self.task_type for _ in indices]
+                    debias_data = [self.task_id for _ in indices]
             self.data = BatchGen.make_baches(data, batch_size)
             if self.debias:
                 self.debias_data = BatchGen.make_baches(debias_data, batch_size)
