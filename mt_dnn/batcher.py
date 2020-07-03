@@ -204,3 +204,7 @@ class BatchGen:
                     batch_info['true_label'] = [sample['true_label'] for sample in batch]
             self.offset += 1
             yield batch_info, batch_data
+
+def mix_task_batches(batchgen_list):
+    num_batchgens = len(batchgen_list)
+    return num_batchgens

@@ -125,8 +125,8 @@ class SANBertNetwork(nn.Module):
             hyp_mem = sequence_output[:,:max_query,:]
             logits = self.scoring_list[task_id](sequence_output, hyp_mem, premise_mask, hyp_mask)
         else:
-            pooled_output = self.dropout_list[task_id](pooled_output)
-            logits = self.scoring_list[task_id](pooled_output)
+            dropped_output = self.dropout_list[task_id](pooled_output)
+            logits = self.scoring_list[task_id](dropped_output)
         if self.opt['debias']:
             x = pooled_output
             for fc_layer in self.debias_proj:
@@ -136,3 +136,8 @@ class SANBertNetwork(nn.Module):
         elif self.opt['mmd']:
             x = pooled_output
         return logits
+
+    def return_repr(self, input_ids, token_type_ids, attention_mask, premise_mask=None, hyp_mask=None, task_id=0):
+        all_encoder_layers, pooled_output = self.bert(input_ids, token_type_ids, attention_mask)
+        sequence_output = all_encoder_layers[-1]
+        return pooled_output

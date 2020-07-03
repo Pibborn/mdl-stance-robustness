@@ -108,7 +108,7 @@ class MTDNNModel(object):
             self.ema.swap_parameters()
             self.para_swapped = False
 
-    def update(self, batch_meta, batch_data):
+    def update(self, batch_meta, batch_data, dump_repr=False):
         self.network.train()
         labels = batch_data[batch_meta['label']]
         if batch_meta['pairwise']:
@@ -165,19 +165,27 @@ class MTDNNModel(object):
                 # get repr
                 loss += torch.mean(mmd_loss(source_feats, target_feats))
 
-        self.train_loss.update(loss.item(), logits.size(0))
-        self.optimizer.zero_grad()
-
-        loss.backward()
-        self.local_updates += 1
-        if self.local_updates % self.config.get('gradient_accumulation_step', 1) == 0:
-            if self.config['global_grad_clipping'] > 0:
-                torch.nn.utils.clip_grad_norm_(self.network.parameters(),
-                                              self.config['global_grad_clipping'])
-            self.optimizer.step()
+        # handle the representation dump
+        if dump_repr:
+            repr = self.mnetwork.return_repr(*inputs)
+            return repr
+        else: # if not dumping representations, train normally
+            self.train_loss.update(loss.item(), logits.size(0))
             self.optimizer.zero_grad()
-            self.updates += 1
-            self.update_ema()
+
+            loss.backward()
+            self.local_updates += 1
+            if self.local_updates % self.config.get('gradient_accumulation_step', 1) == 0:
+                if self.config['global_grad_clipping'] > 0:
+                    torch.nn.utils.clip_grad_norm_(self.network.parameters(),
+                                                  self.config['global_grad_clipping'])
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                self.updates += 1
+                self.update_ema()
+
+
+
 
     def predict(self, batch_meta, batch_data):
         self.network.eval()
@@ -215,6 +223,7 @@ class MTDNNModel(object):
             predict = np.argmax(score, axis=1).tolist()
             score = score.reshape(-1).tolist()
         return score, predict, batch_meta['label']
+
 
     def save(self, filename):
         network_state = dict([(k, v.cpu()) for k, v in self.network.state_dict().items()])

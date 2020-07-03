@@ -104,6 +104,7 @@ def train_config(parser):
                         help='Multiplying factor for the debiasing loss')
     # gradient accumulation
     parser.add_argument('--grad_accumulation_step', type=int, default=1)
+    parser.add_argument('--dump_representations', type=bool, default=False)
 
     return parser
 
@@ -378,15 +379,30 @@ def main():
         if args.mix_opt < 1:
             random.shuffle(all_indices)
 
-
+        repr_array = None
+        task_array = None
+        label_array = None
         for i in range(len(all_indices)):
             task_id = all_indices[i]
-            batch_meta, batch_data= next(all_iters[task_id])
-            model.update(batch_meta, batch_data)
+            batch_meta, batch_data = next(all_iters[task_id])
+            repr = model.update(batch_meta, batch_data, dump_repr=args.dump_representations)
             if (model.local_updates) % (args.log_per_updates * args.grad_accumulation_step) == 0 or model.local_updates == 1:
                 logger.info('Task [{0:2}] updates[{1:6}] train loss[{2:.5f}] remaining[{3}]'.format(task_id,
                     model.updates, model.train_loss.avg,
                     str((datetime.now() - start) / (i + 1) * (len(all_indices) - i - 1)).split('.')[0]))
+            if args.dump_representations and epoch == 0:
+                if repr_array is None:
+                    repr_array = repr.detach().numpy()
+                    task_array = np.array([task_id for _ in range(args.batch_size)])
+                    label_array = batch_data[batch_meta['label']].numpy()
+                else:
+                    repr_array = np.vstack((repr_array, repr.detach().numpy()))
+                    task_array = np.hstack((task_array, np.array([task_id for _ in range(args.batch_size)])))
+                    label_array = np.hstack((label_array, batch_data[batch_meta['label']].numpy()))
+            break
+
+
+
 
         temp_dev_F1s = []
         dev_dump_list = []
@@ -460,6 +476,10 @@ def main():
             model_file = os.path.join(output_dir, 'model.pt')
             model.save(model_file)
 
+        if args.dump_representations and epoch == 0:
+            dump_arr = np.append(repr, task_array.reshape(-1, 1), axis=1)
+            dump_arr = np.append(dump_arr, label_array.reshape(-1, 1), axis=1)
+            np.savetxt('repr_model_base.csv', dump_arr, delimiter=",")
 
 if __name__ == '__main__':
     main()
