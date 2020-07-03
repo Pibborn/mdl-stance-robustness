@@ -399,7 +399,6 @@ def main():
                     repr_array = np.vstack((repr_array, repr.detach().cpu().numpy()))
                     task_array = np.hstack((task_array, np.array([task_id for _ in range(args.batch_size)])))
                     label_array = np.hstack((label_array, batch_data[batch_meta['label']].cpu().numpy()))
-            break
 
 
 
