@@ -14,6 +14,7 @@ from pytorch_pretrained_bert import BertAdam as Adam
 from module.bert_optim import Adamax
 from module.my_optim import EMA
 from .matcher import SANBertNetwork
+from module.mmd_loss import mmd_loss
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +161,9 @@ class MTDNNModel(object):
                     debias_logits_len = debias_logits.size()[0]
                     y_bias = y_bias[:debias_logits_len]
                 loss += torch.mean(F.cross_entropy(debias_logits, y_bias)) * self.config['lambda']
+            elif self.config['mmd']:
+                # get repr
+                loss += torch.mean(mmd_loss(source_feats, target_feats))
 
         self.train_loss.update(loss.item(), logits.size(0))
         self.optimizer.zero_grad()
@@ -186,6 +190,8 @@ class MTDNNModel(object):
         inputs.append(task_id)
         if self.config['debias']:
             score, debias_score = self.mnetwork(*inputs)
+        elif self.config['mmd']:
+            score, mmd_score= self.mnetwork(*inputs)
         else:
             score = self.mnetwork(*inputs)
         if batch_meta['pairwise']:

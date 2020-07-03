@@ -4,7 +4,7 @@ from data_utils.log_wrapper import create_logger
 from data_utils.glue_utils import *
 import random
 
-LOW_RESOURCE_DATA_RATES = [0.1, 0.3, 0.7]
+LOW_RESOURCE_DATA_RATES = [0.1, 0.3, 0.7, 0.03]
 
 bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 logger = create_logger(__name__, to_disk=True, log_file='bert_data_proc_512.log')

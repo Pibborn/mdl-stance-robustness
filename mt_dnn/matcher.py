@@ -133,4 +133,6 @@ class SANBertNetwork(nn.Module):
                 x = fc_layer(x)
             debias_logits = F.softmax(x)
             return logits, debias_logits
+        elif self.opt['mmd']:
+            x = pooled_output
         return logits
