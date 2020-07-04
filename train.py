@@ -394,7 +394,7 @@ def main():
                 if repr_array is None:
                     repr_array = repr.detach().cpu().numpy()
                     task_array = np.array([task_id for _ in range(args.batch_size)])
-                    label_array = batch_data[batch_meta['label']].cpu().numpy()
+                    label_array = batch_data[batch_meta['label']].detach().cpu().numpy()
                 else:
                     repr_array = np.vstack((repr_array, repr.detach().cpu().numpy()))
                     task_array = np.hstack((task_array, np.array([task_id for _ in range(args.batch_size)])))
@@ -476,7 +476,7 @@ def main():
             model.save(model_file)
 
         if args.dump_representations and epoch == 0:
-            dump_arr = np.append(repr, task_array.reshape(-1, 1), axis=1)
+            dump_arr = np.append(repr_array, task_array.reshape(-1, 1), axis=1)
             dump_arr = np.append(dump_arr, label_array.reshape(-1, 1), axis=1)
             np.savetxt('repr_model_base.csv', dump_arr, delimiter=",")
 
