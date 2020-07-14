@@ -396,84 +396,83 @@ def main():
                     task_array = np.array([task_id for _ in range(args.batch_size)])
                     label_array = batch_data[batch_meta['label']].detach().cpu().numpy()
                 else:
+                    batch_length = list(repr.size())[0]
                     repr_array = np.vstack((repr_array, repr.detach().cpu().numpy()))
-                    task_array = np.hstack((task_array, np.array([task_id for _ in range(args.batch_size)])))
+                    task_array = np.hstack((task_array, np.array([task_id for _ in range(batch_length)])))
                     label_array = np.hstack((label_array, batch_data[batch_meta['label']].cpu().numpy()))
 
+       #
+       # temp_dev_F1s = []
+       # dev_dump_list = []
+       # test_dump_list = []
+       # for idx, dataset in enumerate(args.test_datasets):
+       #     prefix = dataset.split('_')[0]
+       #     label_dict = GLOBAL_MAP.get(prefix, None)
+       #     dev_data = dev_data_list[idx]
+       #     if dev_data is not None:
+       #         dev_metrics, dev_predictions, scores, golds, dev_ids, premises, hypotheses = eval_model(model, dev_data, dataset=prefix,
+       #                                                                          use_cuda=args.cuda)
+       #         for key, val in dev_metrics.items():
+       #             if not isinstance(val, dict):
+       #                 logger.warning("Task {0} -- epoch {1} -- Dev {2}: {3:.3f}".format(dataset, epoch, key, val))
+       #         score_file = os.path.join(output_dir, '{}_dev_scores_{}.json'.format(dataset, epoch))
+       #         results = {'metrics': dev_metrics, 'predictions': dev_predictions, 'uids': dev_ids, 'scores': scores, 'golds': golds,
+       #                    'premises': premises, 'hypotheses': hypotheses}
+       #         dump(score_file, results)
+       #         official_score_file = os.path.join(output_dir, '{}_dev_scores_{}.tsv'.format(dataset, epoch))
+       #         submit(official_score_file, results, label_dict)
 
+       #         # for checkpoint
+       #         temp_dev_F1s.append(dev_metrics['F1_macro'])
+       #         dev_dump_list.append({
+       #             "output_dir": output_dir,
+       #             "dev_metrics": dev_metrics,
+       #             "dev_predictions": dev_predictions,
+       #             "golds": golds,
+       #             "opt": opt,
+       #             "dataset": dataset
+       #         })
 
+       #     # test eval
+       #     test_data = test_data_list[idx]
+       #     if test_data is not None:
+       #         test_metrics, test_predictions, scores, golds, test_ids, premises, hypotheses = eval_model(model, test_data, dataset=prefix,
+       #                                                                          use_cuda=args.cuda, with_label=True)
+       #         score_file = os.path.join(output_dir, '{}_test_scores_{}.json'.format(dataset, epoch))
+       #         results = {'metrics': test_metrics, 'predictions': test_predictions, 'uids': test_ids, 'scores': scores, 'golds': golds,
+       #                    'premises': premises, 'hypotheses': hypotheses}
+       #         dump(score_file, results)
+       #         official_score_file = os.path.join(output_dir, '{}_test_scores_{}.tsv'.format(dataset, epoch))
+       #         submit(official_score_file, results, label_dict)
+       #         logger.info('[new test scores saved.]')
 
-        temp_dev_F1s = []
-        dev_dump_list = []
-        test_dump_list = []
-        for idx, dataset in enumerate(args.test_datasets):
-            prefix = dataset.split('_')[0]
-            label_dict = GLOBAL_MAP.get(prefix, None)
-            dev_data = dev_data_list[idx]
-            if dev_data is not None:
-                dev_metrics, dev_predictions, scores, golds, dev_ids, premises, hypotheses = eval_model(model, dev_data, dataset=prefix,
-                                                                                 use_cuda=args.cuda)
-                for key, val in dev_metrics.items():
-                    if not isinstance(val, dict):
-                        logger.warning("Task {0} -- epoch {1} -- Dev {2}: {3:.3f}".format(dataset, epoch, key, val))
-                score_file = os.path.join(output_dir, '{}_dev_scores_{}.json'.format(dataset, epoch))
-                results = {'metrics': dev_metrics, 'predictions': dev_predictions, 'uids': dev_ids, 'scores': scores, 'golds': golds,
-                           'premises': premises, 'hypotheses': hypotheses}
-                dump(score_file, results)
-                official_score_file = os.path.join(output_dir, '{}_dev_scores_{}.tsv'.format(dataset, epoch))
-                submit(official_score_file, results, label_dict)
+       #         # for checkpoint
+       #         test_dump_list.append({
+       #             "output_dir": output_dir,
+       #             "test_metrics": test_metrics,
+       #             "test_predictions": test_predictions,
+       #             "golds": golds,
+       #             "opt": opt,
+       #             "dataset": dataset
+       #         })
 
-                # for checkpoint
-                temp_dev_F1s.append(dev_metrics['F1_macro'])
-                dev_dump_list.append({
-                    "output_dir": output_dir,
-                    "dev_metrics": dev_metrics,
-                    "dev_predictions": dev_predictions,
-                    "golds": golds,
-                    "opt": opt,
-                    "dataset": dataset
-                })
+       # # save checkpoint
+       # if np.average(temp_dev_F1s) > best_F1_macro:
+       #     print("Save new model! Current best F1 macro over all dev sets: " + "{0:.2f}".format(best_F1_macro) + ". New: " + "{0:.2f}".format(np.average(temp_dev_F1s)))
+       #     best_F1_macro = np.average(temp_dev_F1s)
 
-            # test eval
-            test_data = test_data_list[idx]
-            if test_data is not None:
-                test_metrics, test_predictions, scores, golds, test_ids, premises, hypotheses = eval_model(model, test_data, dataset=prefix,
-                                                                                 use_cuda=args.cuda, with_label=True)
-                score_file = os.path.join(output_dir, '{}_test_scores_{}.json'.format(dataset, epoch))
-                results = {'metrics': test_metrics, 'predictions': test_predictions, 'uids': test_ids, 'scores': scores, 'golds': golds,
-                           'premises': premises, 'hypotheses': hypotheses}
-                dump(score_file, results)
-                official_score_file = os.path.join(output_dir, '{}_test_scores_{}.tsv'.format(dataset, epoch))
-                submit(official_score_file, results, label_dict)
-                logger.info('[new test scores saved.]')
+       #     # override current dump file
+       #     for l in dev_dump_list:
+       #         dump_result_files(l['dataset'])(l['output_dir'], epoch, l['dev_metrics'], str(l['dev_predictions']),
+       #                                         str(l['golds']), "dev", l['opt'], l['dataset'])
 
-                # for checkpoint
-                test_dump_list.append({
-                    "output_dir": output_dir,
-                    "test_metrics": test_metrics,
-                    "test_predictions": test_predictions,
-                    "golds": golds,
-                    "opt": opt,
-                    "dataset": dataset
-                })
+       #     for l in test_dump_list:
+       #         dump_result_files(l['dataset'])(l['output_dir'], epoch, l['test_metrics'], str(l['test_predictions']),
+       #                                         str(l['golds']), "test", l['opt'], l['dataset'])
 
-        # save checkpoint
-        if np.average(temp_dev_F1s) > best_F1_macro:
-            print("Save new model! Current best F1 macro over all dev sets: " + "{0:.2f}".format(best_F1_macro) + ". New: " + "{0:.2f}".format(np.average(temp_dev_F1s)))
-            best_F1_macro = np.average(temp_dev_F1s)
-
-            # override current dump file
-            for l in dev_dump_list:
-                dump_result_files(l['dataset'])(l['output_dir'], epoch, l['dev_metrics'], str(l['dev_predictions']),
-                                                str(l['golds']), "dev", l['opt'], l['dataset'])
-
-            for l in test_dump_list:
-                dump_result_files(l['dataset'])(l['output_dir'], epoch, l['test_metrics'], str(l['test_predictions']),
-                                                str(l['golds']), "test", l['opt'], l['dataset'])
-
-            # save model
-            model_file = os.path.join(output_dir, 'model.pt')
-            model.save(model_file)
+       #     # save model
+       #     model_file = os.path.join(output_dir, 'model.pt')
+       #     model.save(model_file)
 
         if args.dump_representations and epoch == 0:
             dump_arr = np.append(repr_array, task_array.reshape(-1, 1), axis=1)

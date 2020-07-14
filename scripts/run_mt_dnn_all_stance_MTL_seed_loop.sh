@@ -6,7 +6,7 @@ if [[ $# -ne 3 ]]; then
 fi
 
 data="arc,argmin,fnc1,ibmcs,iac1,perspectrum,semeval2016t6,semeval2019t7,scd,snopes"
-seeds=("0" "1" "2" "3" "4")
+seeds=("0")
 model=$2 #bert_model_large, mt_dnn_large
 
 prefix="mt-dnn-${data}_ST"
@@ -25,7 +25,7 @@ answer_opt=1
 optim="adamax"
 grad_clipping=0
 global_grad_clipping=1
-lr="5e-5"
+lr="0"
 epochs=1
 max_seq_len=100
 train_data_ratio=$3
