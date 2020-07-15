@@ -187,7 +187,7 @@ class MTDNNModel(object):
 
 
 
-    def predict(self, batch_meta, batch_data):
+    def predict(self, batch_meta, batch_data, dump_repr=False):
         self.network.eval()
         task_id = batch_meta['task_id']
         task_type = batch_meta['task_type']
@@ -214,6 +214,9 @@ class MTDNNModel(object):
                 predict[idx, pos] = 1
             predict = predict.reshape(-1).tolist()
             score = score.reshape(-1).tolist()
+            if dump_repr:
+                repr = self.mnetwork.return_repr(*inputs)
+                return score, predict, batch_meta['true_label'], repr
             return score, predict, batch_meta['true_label']
         else:
             if task_type < 1:
@@ -222,6 +225,9 @@ class MTDNNModel(object):
             score = score.numpy()
             predict = np.argmax(score, axis=1).tolist()
             score = score.reshape(-1).tolist()
+            if dump_repr:
+                repr = self.mnetwork.return_repr(*inputs)
+                return score, predict, batch_meta['label'], repr
         return score, predict, batch_meta['label']
 
 
