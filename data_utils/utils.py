@@ -49,3 +49,9 @@ def get_gpu_memory_map():
 def get_pip_env():
     result = subprocess.call(["pip", "freeze"])
     return result
+
+def tensor_to_numpy(tensor, cuda=False):
+    if cuda:
+        return tensor.detach().cpu().numpy()
+    else:
+        return tensor.detach().numpy()

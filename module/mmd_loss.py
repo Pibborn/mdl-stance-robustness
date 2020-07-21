@@ -5,13 +5,13 @@ from torchvision import datasets, transforms
 from functools import partial
 
 
-def mmd_loss(source_features, target_features):
+def mmd_loss(source_features, target_features, cuda=True):
 
     sigmas = [
         1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1, 5, 10, 15, 20, 25, 30, 35, 100,
         1e3, 1e4, 1e5, 1e6
     ]
-    if params.use_gpu:
+    if cuda:
         gaussian_kernel = partial(
             gaussian_kernel_matrix, sigmas = Variable(torch.cuda.FloatTensor(sigmas))
         )

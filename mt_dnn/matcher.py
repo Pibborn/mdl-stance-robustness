@@ -123,21 +123,19 @@ class SANBertNetwork(nn.Module):
             assert premise_mask is not None
             assert hyp_mask is not None
             hyp_mem = sequence_output[:,:max_query,:]
-            logits = self.scoring_list[task_id](sequence_output, hyp_mem, premise_mask, hyp_mask)
+            logits, representation = self.scoring_list[task_id](sequence_output, hyp_mem, premise_mask, hyp_mask)
         else:
             dropped_output = self.dropout_list[task_id](pooled_output)
             logits = self.scoring_list[task_id](dropped_output)
+            representation = pooled_output
         if self.opt['debias']:
-            x = pooled_output
+            x = representation
             for fc_layer in self.debias_proj:
                 x = fc_layer(x)
             debias_logits = F.softmax(x)
-            return logits, debias_logits
-        elif self.opt['mmd']:
-            x = pooled_output
-        return logits
+            return logits, representation, debias_logits
+        return logits, representation
 
     def return_repr(self, input_ids, token_type_ids, attention_mask, premise_mask=None, hyp_mask=None, task_id=0):
         all_encoder_layers, pooled_output = self.bert(input_ids, token_type_ids, attention_mask)
-        sequence_output = all_encoder_layers[-1]
         return pooled_output

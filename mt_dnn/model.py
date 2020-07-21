@@ -9,22 +9,25 @@ import torch.optim as optim
 import torch
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import *
-from data_utils.utils import AverageMeter
+from data_utils.utils import AverageMeter, tensor_to_numpy
+from data_utils.label_map import TaskIDMap
 from pytorch_pretrained_bert import BertAdam as Adam
 from module.bert_optim import Adamax
 from module.my_optim import EMA
 from .matcher import SANBertNetwork
 from module.mmd_loss import mmd_loss
+from module.tensorboard_handler import TensorboardHandler
 
 logger = logging.getLogger(__name__)
 
 class MTDNNModel(object):
-    def __init__(self, opt, state_dict=None, num_train_step=-1):
+    def __init__(self, opt, state_dict=None, num_train_step=-1, save_dir='checkpoints'):
         self.config = opt
         self.updates = state_dict['updates'] if state_dict and 'updates' in state_dict else 0
         self.local_updates = 0
         self.train_loss = AverageMeter()
         self.network = SANBertNetwork(opt)
+        self.tb_writer = TensorboardHandler(save_dir + '/tblogs/')
 
         if state_dict:
             new_state = set(self.network.state_dict().keys())
@@ -108,7 +111,7 @@ class MTDNNModel(object):
             self.ema.swap_parameters()
             self.para_swapped = False
 
-    def update(self, batch_meta, batch_data, dump_repr=False):
+    def update(self, batch_meta, batch_data, dump_repr=False, mmd_batch=None):
         self.network.train()
         labels = batch_data[batch_meta['label']]
         if batch_meta['pairwise']:
@@ -131,9 +134,9 @@ class MTDNNModel(object):
             inputs.append(None)
         inputs.append(task_id)
         if self.config['debias']:
-            logits, debias_logits = self.mnetwork(*inputs)
+            logits, target_repr, debias_logits = self.mnetwork(*inputs)
         else:
-            logits = self.mnetwork(*inputs)
+            logits, target_repr = self.mnetwork(*inputs)
         if batch_meta['pairwise']:
             logits = logits.view(-1, batch_meta['pairwise_size'])
 
@@ -147,7 +150,8 @@ class MTDNNModel(object):
             else:
                 loss = torch.mean(F.cross_entropy(logits, y, reduce=False) * weight)
             if self.config['debias']:
-                loss += torch.mean(F.cross_entropy(debias_logits, y_bias, reduce=False) * weight)
+                debias_term = torch.mean(F.cross_entropy(debias_logits, y_bias, reduce=False) * weight)
+                loss += debias_term
         else:
             if task_type > 0:
                 loss = F.mse_loss(logits.squeeze(), y)
@@ -160,11 +164,27 @@ class MTDNNModel(object):
                 elif y_bias.size()[0] > debias_logits.size()[0]:
                     debias_logits_len = debias_logits.size()[0]
                     y_bias = y_bias[:debias_logits_len]
-                loss += torch.mean(F.cross_entropy(debias_logits, y_bias)) * self.config['lambda']
+                debias_term = torch.mean(F.cross_entropy(debias_logits, y_bias)) * self.config['lambda']
+                loss += debias_term
             elif self.config['mmd']:
                 # get repr
-                loss += torch.mean(mmd_loss(source_feats, target_feats))
-
+                batch_meta, batch_data = mmd_batch
+                task_id_mmd = batch_meta['task_id']
+                task_type = batch_meta['task_type']
+                inputs = batch_data[:batch_meta['input_len']]
+                if len(inputs) == 3:
+                    inputs.append(None)
+                    inputs.append(None)
+                inputs.append(task_id)
+                _, source_repr = self.mnetwork(*inputs)
+                mmd_term = torch.mean(mmd_loss(source_repr, target_repr, cuda=self.config['cuda'])) * self.config['lambda']
+                if task_id_mmd != task_id:
+                    loss += mmd_term
+        self.tb_writer.update_tb(task_id, loss)
+        if self.config['debias']:
+            self.tb_writer.update_tb(task_id, debias_term, debias=True, update=True)
+        elif self.config['mmd']:
+            self.tb_writer.update_tb(task_id, mmd_term, mmd=True, update=True)
         # handle the representation dump
         if dump_repr:
             repr = self.mnetwork.return_repr(*inputs)
@@ -184,9 +204,6 @@ class MTDNNModel(object):
                 self.updates += 1
                 self.update_ema()
 
-
-
-
     def predict(self, batch_meta, batch_data, dump_repr=False):
         self.network.eval()
         task_id = batch_meta['task_id']
@@ -199,7 +216,7 @@ class MTDNNModel(object):
         if self.config['debias']:
             score, debias_score = self.mnetwork(*inputs)
         elif self.config['mmd']:
-            score, mmd_score= self.mnetwork(*inputs)
+            score, mmd_score = self.mnetwork(*inputs)
         else:
             score = self.mnetwork(*inputs)
         if batch_meta['pairwise']:

@@ -1106,7 +1106,7 @@ def submit(path, data, label_dict=None):
                 assert type(pred) is int
                 writer.write('{}\t{}\t{}\t{}\t{}\n'.format(uid, label_dict[pred], label_dict[gold], prem, hypo))
 
-def eval_model(model, data, dataset, use_cuda=True, with_label=True):
+def eval_model(model, data, dataset, use_cuda=True, with_label=True, dump_representations=False):
     data.reset()
     if use_cuda:
         model.cuda()
@@ -1117,14 +1117,19 @@ def eval_model(model, data, dataset, use_cuda=True, with_label=True):
     premises = []
     hypotheses = []
     metrics = {}
+    representations = []
     for batch_meta, batch_data in data:
-        score, pred, gold = model.predict(batch_meta, batch_data)
+        if not dump_representations:
+            score, pred, gold = model.predict(batch_meta, batch_data)
+        else:
+            score, pred, gold, repr = model.predict(batch_meta, batch_data, dump_repr=dump_representations)
         predictions.extend(pred)
         golds.extend(gold)
         scores.extend(score)
         ids.extend(batch_meta['uids'])
         premises.extend(batch_meta['premises'])
         hypotheses.extend(batch_meta['hypotheses'])
+        representations.extend(repr)
     mmeta = METRIC_META[dataset]
     if with_label:
         for mm in mmeta:
@@ -1141,4 +1146,6 @@ def eval_model(model, data, dataset, use_cuda=True, with_label=True):
             else:
                 metric = metric_func(scores, golds)
                 metrics[metric_name] = metric
+    if dump_representations:
+        return metrics, predictions, scores, golds, ids, premises, hypotheses, representations
     return metrics, predictions, scores, golds, ids, premises, hypotheses

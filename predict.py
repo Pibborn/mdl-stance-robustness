@@ -97,6 +97,7 @@ def train_config(parser):
     parser.add_argument('--debias', type=bool, default=False)
     parser.add_argument('--debias_layers', type=int, default=2)
     parser.add_argument('--debias_width', type=int, default=30)
+    parser.add_argument('--dump_representations', type=bool, default=False)
     return parser
 
 parser = argparse.ArgumentParser()
@@ -330,7 +331,7 @@ def main():
             dev_data = dev_data_list[idx]
             if dev_data is not None:
                 dev_metrics, dev_predictions, scores, golds, dev_ids, premises, hypotheses = eval_model(model, dev_data, dataset=prefix,
-                                                                                 use_cuda=args.cuda)
+                                                                                 use_cuda=args.cuda, dump_repr=args.dump_representations)
                 for key, val in dev_metrics.items():
                     if not isinstance(val, dict):
                         logger.warning("Task {0} -- epoch {1} -- Dev {2}: {3:.3f}".format(dataset, epoch, key, val))

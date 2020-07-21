@@ -186,9 +186,21 @@ SAN_META = {
     'iac1': 1
 }
 
+
 def generate_decoder_opt(task, max_opt):
     assert task in SAN_META
     opt_v = 0
     if SAN_META[task] and max_opt < 3:
         opt_v = max_opt
     return opt_v
+
+
+class TaskIDMap():
+    task_map = {}
+
+    def __init__(self, task_list):
+        TaskIDMap.task_map = {task_list.index(task_name): task_name for task_name in task_list}
+
+    @staticmethod
+    def get_name(id):
+        return TaskIDMap.task_map[id]

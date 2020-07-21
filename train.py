@@ -11,11 +11,13 @@ import numpy as np
 import torch
 
 from data_utils.glue_utils import submit, eval_model
-from data_utils.label_map import DATA_META, GLOBAL_MAP, DATA_TYPE, DATA_SWAP, TASK_TYPE, generate_decoder_opt
+from data_utils.label_map import DATA_META, GLOBAL_MAP, DATA_TYPE, DATA_SWAP, TASK_TYPE, generate_decoder_opt, TaskIDMap
 from data_utils.log_wrapper import create_logger
 from data_utils.utils import set_environment
-from mt_dnn.batcher import BatchGen
+from mt_dnn.batcher import BatchGen, mix_task_batches
 from mt_dnn.model import MTDNNModel
+from torch.utils.tensorboard import SummaryWriter
+
 
 def model_config(parser):
     parser.add_argument('--update_bert_opt', default=0, type=int)
@@ -105,7 +107,8 @@ def train_config(parser):
     # gradient accumulation
     parser.add_argument('--grad_accumulation_step', type=int, default=1)
     parser.add_argument('--dump_representations', type=bool, default=False)
-
+    # mmd
+    parser.add_argument('--mmd', type=bool, default=False)
     return parser
 
 parser = argparse.ArgumentParser()
@@ -245,6 +248,11 @@ def main():
                                 debias=args.debias)
         train_data_list.append(train_data)
 
+    TaskIDMap(args.train_datasets)
+
+    if args.mmd:
+        biggest_dataset_pos = np.argmax([len(batchgen) for batchgen in train_data_list])
+        biggest_dataset = train_data_list[biggest_dataset_pos]
 
     opt['answer_opt'] = decoder_opts
     opt['tasks_dropout_p'] = dropout_list
@@ -297,6 +305,8 @@ def main():
 
     all_iters = [iter(item) for item in train_data_list]
     all_lens = [len(bg) for bg in train_data_list]
+    if args.mmd:
+        iter_biggest = iter(biggest_dataset)
     num_all_batches = args.epochs * sum(all_lens) // args.grad_accumulation_step
     logger.info('############# Gradient Accumulation Infor #############')
     logger.info('number of step: {}'.format(args.epochs * sum(all_lens)))
@@ -326,7 +336,7 @@ def main():
         exit(1)
 
 
-    model = MTDNNModel(opt, state_dict=state_dict, num_train_step=num_all_batches)
+    model = MTDNNModel(opt, state_dict=state_dict, num_train_step=num_all_batches, save_dir=output_dir)
     ####model meta str
     headline = '############# Model Arch of MT-DNN #############'
     ###print network
@@ -351,6 +361,8 @@ def main():
         logger.warning('At epoch {}'.format(epoch))
         for train_data in train_data_list:
             train_data.reset()
+        if args.mmd:
+            biggest_dataset.reset()
         start = datetime.now()
         all_indices=[]
         if len(train_data_list)> 1 and (args.ratio > 0 or args.reduce_first_dataset_ratio > 0):
@@ -385,7 +397,11 @@ def main():
         for i in range(len(all_indices)):
             task_id = all_indices[i]
             batch_meta, batch_data = next(all_iters[task_id])
-            repr = model.update(batch_meta, batch_data, dump_repr=args.dump_representations)
+            if args.mmd:
+                batch_mmd_meta, batch_mmd_data = next(iter_biggest)
+                model.update(batch_meta, batch_data, mmd_batch=(batch_mmd_meta, batch_mmd_data))
+            else:
+                repr = model.update(batch_meta, batch_data, dump_repr=args.dump_representations)
             if (model.local_updates) % (args.log_per_updates * args.grad_accumulation_step) == 0 or model.local_updates == 1:
                 logger.info('Task [{0:2}] updates[{1:6}] train loss[{2:.5f}] remaining[{3}]'.format(task_id,
                     model.updates, model.train_loss.avg,

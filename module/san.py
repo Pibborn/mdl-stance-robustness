@@ -106,6 +106,6 @@ class SANClassifier(nn.Module):
         else:
             scores = scores_list[-1]
         if self.dump_state:
-            return scores, scores_list
+            return scores, scores_list, x_sum
         else:
-            return scores
+            return scores, x_sum

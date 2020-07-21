@@ -206,5 +206,5 @@ class BatchGen:
             yield batch_info, batch_data
 
 def mix_task_batches(batchgen_list):
-    num_batchgens = len(batchgen_list)
-    return num_batchgens
+    print(batchgen_list)
+    return batchgen_list
