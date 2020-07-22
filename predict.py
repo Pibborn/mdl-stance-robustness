@@ -12,6 +12,7 @@ from data_utils.log_wrapper import create_logger
 from data_utils.utils import set_environment
 from mt_dnn.batcher import BatchGen
 from mt_dnn.model import MTDNNModel
+from data_utils.label_map import TaskIDMap
 
 def model_config(parser):
     parser.add_argument('--update_bert_opt', default=0, type=int)
@@ -300,6 +301,7 @@ def main():
         logger.error('#' * 20)
         logger.error('Could not find the init model!\n Exit application!')
         logger.error('#' * 20)
+        exit(1)
 
 
     model = MTDNNModel(opt, state_dict=state_dict, num_train_step=num_all_batches)
@@ -321,6 +323,10 @@ def main():
 
     if args.cuda:
         model.cuda()
+
+    repr_dict = {}
+    TaskIDMap(args.test_datasets)
+
     for epoch in range(0, 1):
         dev_dump_list = []
         test_dump_list = []
@@ -330,8 +336,14 @@ def main():
             label_dict = GLOBAL_MAP.get(prefix, None)
             dev_data = dev_data_list[idx]
             if dev_data is not None:
-                dev_metrics, dev_predictions, scores, golds, dev_ids, premises, hypotheses = eval_model(model, dev_data, dataset=prefix,
+                if args.dump_representations:
+                    dev_metrics, dev_predictions, scores, golds, dev_ids, premises, hypotheses, dev_repr = eval_model(model, dev_data, dataset=prefix,
                                                                                  use_cuda=args.cuda, dump_repr=args.dump_representations)
+                else:
+                    dev_metrics, dev_predictions, scores, golds, dev_ids, premises, hypotheses = eval_model(model,
+                                                                                                            dev_data,
+                                                                                                            dataset=prefix,
+                                                                                                            use_cuda=args.cuda)
                 for key, val in dev_metrics.items():
                     if not isinstance(val, dict):
                         logger.warning("Task {0} -- epoch {1} -- Dev {2}: {3:.3f}".format(dataset, epoch, key, val))
@@ -356,12 +368,22 @@ def main():
                     "dataset": dataset
                 })
 
+                if args.dump_representations:
+                    repr_dict[dataset]['dev'] = dev_repr
+
             # test eval
             test_data = test_data_list[idx]
             if test_data is not None:
-                test_metrics, test_predictions, scores, golds, test_ids, premises, hypotheses = eval_model(model, test_data, dataset=prefix,
-                                                                                 use_cuda=args.cuda, with_label=True)
-
+                if not args.dump_representations:
+                    test_metrics, test_predictions, scores, golds, test_ids, premises, hypotheses = eval_model(model, test_data, dataset=prefix,
+                                                                                     use_cuda=args.cuda, with_label=True)
+                else:
+                    test_metrics, test_predictions, scores, golds, test_ids, premises, hypotheses, test_repr = eval_model(model,
+                                                                                                                          test_data,
+                                                                                                                          dataset=prefix,
+                                                                                                                          use_cuda=args.cuda,
+                                                                                                                          with_label=True,
+                                                                                                                          dump_representations=True)
                 if args.dump_to_checkpoints == 1:
                     score_file = os.path.join(output_dir, '{}_test_scores_{}_EVAL_ONLY.json'.format(dataset, epoch))
                     results = {'metrics': test_metrics, 'predictions': test_predictions, 'uids': test_ids, 'scores': scores, 'golds': golds,
@@ -381,13 +403,20 @@ def main():
                     "dataset": dataset
                 })
 
+                if args.dump_representations:
+                    repr_dict[dataset]['test'] = test_repr
+
             # stress test eval
             if args.stress_tests != "NONE":
                 stress_data = stress_data_list[idx]
                 for j, stress_test in enumerate(args.stress_tests.split(',')):
-                    stress_metrics, stress_predictions, scores, golds, stress_ids, premises, hypotheses = \
-                        eval_model(model, stress_data[j], dataset=prefix, use_cuda=args.cuda, with_label=True)
-
+                    if not args.dump_representations:
+                        stress_metrics, stress_predictions, scores, golds, stress_ids, premises, hypotheses = \
+                            eval_model(model, stress_data[j], dataset=prefix, use_cuda=args.cuda, with_label=True)
+                    else:
+                        stress_metrics, stress_predictions, scores, golds, stress_ids, premises, hypotheses, stress_repr = \
+                            eval_model(model, stress_data[j], dataset=prefix, use_cuda=args.cuda, with_label=True,
+                                       dump_representations=True)
                     if args.dump_to_checkpoints == 1:
                         score_file = os.path.join(output_dir, '{}_test_{}_scores_{}_EVAL_ONLY.json'.format(dataset, stress_test, epoch))
                         results = {'metrics': stress_metrics, 'predictions': stress_predictions, 'uids': stress_ids, 'scores': scores, 'golds': golds,
@@ -408,6 +437,8 @@ def main():
                         "stress_test": stress_test
                     })
 
+                    if args.dump_representations:
+                        repr_dict[dataset][stress_test] = stress_repr
 
 
         # save results
@@ -424,6 +455,9 @@ def main():
             for l in stress_dump_list:
                 dump_result_files(l['dataset'])(l['output_dir'], -1, l['test_metrics'], str(l['test_predictions']),
                                                 str(l['golds']), l['stress_test'], l['opt'], l['dataset'])
+
+        if args.dump_representations:
+            dump_repr_dict(args.output_dir + '/representations/')
 
 if __name__ == '__main__':
     main()

@@ -1129,7 +1129,8 @@ def eval_model(model, data, dataset, use_cuda=True, with_label=True, dump_repres
         ids.extend(batch_meta['uids'])
         premises.extend(batch_meta['premises'])
         hypotheses.extend(batch_meta['hypotheses'])
-        representations.extend(repr)
+        if dump_representations:
+            representations.extend(repr)
     mmeta = METRIC_META[dataset]
     if with_label:
         for mm in mmeta:

@@ -214,11 +214,11 @@ class MTDNNModel(object):
             inputs.append(None)
         inputs.append(task_id)
         if self.config['debias']:
-            score, debias_score = self.mnetwork(*inputs)
+            score, repr, debias_score = self.mnetwork(*inputs)
         elif self.config['mmd']:
-            score, mmd_score = self.mnetwork(*inputs)
+            score, repr = self.mnetwork(*inputs)
         else:
-            score = self.mnetwork(*inputs)
+            score, repr = self.mnetwork(*inputs)
         if batch_meta['pairwise']:
             score = score.contiguous().view(-1, batch_meta['pairwise_size'])
             if task_type < 1:
@@ -232,7 +232,6 @@ class MTDNNModel(object):
             predict = predict.reshape(-1).tolist()
             score = score.reshape(-1).tolist()
             if dump_repr:
-                repr = self.mnetwork.return_repr(*inputs)
                 return score, predict, batch_meta['true_label'], repr
             return score, predict, batch_meta['true_label']
         else:
@@ -243,7 +242,6 @@ class MTDNNModel(object):
             predict = np.argmax(score, axis=1).tolist()
             score = score.reshape(-1).tolist()
             if dump_repr:
-                repr = self.mnetwork.return_repr(*inputs)
                 return score, predict, batch_meta['label'], repr
         return score, predict, batch_meta['label']
 

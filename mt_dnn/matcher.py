@@ -136,6 +136,3 @@ class SANBertNetwork(nn.Module):
             return logits, representation, debias_logits
         return logits, representation
 
-    def return_repr(self, input_ids, token_type_ids, attention_mask, premise_mask=None, hyp_mask=None, task_id=0):
-        all_encoder_layers, pooled_output = self.bert(input_ids, token_type_ids, attention_mask)
-        return pooled_output

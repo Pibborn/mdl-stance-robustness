@@ -417,7 +417,6 @@ def main():
                     task_array = np.hstack((task_array, np.array([task_id for _ in range(batch_length)])))
                     label_array = np.hstack((label_array, batch_data[batch_meta['label']].cpu().numpy()))
 
-
         temp_dev_F1s = []
         dev_dump_list = []
         test_dump_list = []
