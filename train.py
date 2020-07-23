@@ -398,7 +398,11 @@ def main():
             task_id = all_indices[i]
             batch_meta, batch_data = next(all_iters[task_id])
             if args.mmd:
-                batch_mmd_meta, batch_mmd_data = next(iter_biggest)
+                try:
+                    batch_mmd_meta, batch_mmd_data = next(iter_biggest)
+                except StopIteration:
+                    biggest_dataset.reset()
+                    batch_mmd_meta, batch_mmd_data = next(iter_biggest)
                 model.update(batch_meta, batch_data, mmd_batch=(batch_mmd_meta, batch_mmd_data))
             else:
                 repr = model.update(batch_meta, batch_data, dump_repr=args.dump_representations)
