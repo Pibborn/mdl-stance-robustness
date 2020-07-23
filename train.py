@@ -402,6 +402,7 @@ def main():
                     batch_mmd_meta, batch_mmd_data = next(iter_biggest)
                 except StopIteration:
                     biggest_dataset.reset()
+                    iter_biggest = iter(biggest_dataset)
                     batch_mmd_meta, batch_mmd_data = next(iter_biggest)
                 model.update(batch_meta, batch_data, mmd_batch=(batch_mmd_meta, batch_mmd_data))
             else:
