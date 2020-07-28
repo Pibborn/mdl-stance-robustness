@@ -6,6 +6,7 @@ import shutil
 import random
 from datetime import datetime
 from pprint import pprint
+from copy import deepcopy
 
 import numpy as np
 import torch
@@ -252,7 +253,7 @@ def main():
 
     if args.mmd:
         biggest_dataset_pos = np.argmax([len(batchgen) for batchgen in train_data_list])
-        biggest_dataset = train_data_list[biggest_dataset_pos]
+        biggest_dataset = deepcopy(train_data_list[biggest_dataset_pos])
 
     opt['answer_opt'] = decoder_opts
     opt['tasks_dropout_p'] = dropout_list
