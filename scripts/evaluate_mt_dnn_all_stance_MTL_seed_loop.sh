@@ -1,6 +1,6 @@
 #!/bin/bash
-if [[ $# -ne 4 ]]; then
-  echo "bash evaluate_mt_dnn_all_stance_MTL_seed_loop.sh <gpu> <model_name> <timestamp> <train_data_ratio>"
+if [[ $# -ne 5 ]]; then
+  echo "bash evaluate_mt_dnn_all_stance_MTL_seed_loop.sh <gpu> <model_name> <timestamp> <train_data_ratio> <lambda>"
   echo "<train_data_ratio> in percentage (i.e. 10, 20, 30, ...)!"
   exit 1
 fi
@@ -18,7 +18,7 @@ tstr=$3 # e.g. "2019-06-19T1750"
 
 train_datasets=${data}
 test_datasets=${data}
-stress_tests="NONE" #negation,spelling,paraphrase
+stress_tests="negation,spelling,paraphrase"
 DATA_DIR="../data/mt_dnn"
 
 answer_opt=1
@@ -26,19 +26,21 @@ optim="adamax"
 grad_clipping=0
 global_grad_clipping=1
 lr="5e-5"
-epochs=1
+epochs=5
 max_seq_len=100 # for the longer stress tests it will automatically choose 512
 dump_to_checkpoints=1 # if 0, only dumps results to result folder
 train_data_ratio=$4
+lambda=$5
 
 for seed in "${seeds[@]}" ; do
     if [[ $train_data_ratio -eq 100 ]]; then
-        model_dir="../checkpoints/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_${tstr}"
+        model_dir="../mmd_checkpoints/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_lambda${lambda}_${tstr}"
     else
-        model_dir="../checkpoints/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_trainratio${train_data_ratio}_${tstr}"
+        model_dir="../mmd_checkpoints/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_trainratio${train_data_ratio}_lambda${lambda}_${tstr}"
     fi
+    echo $model_dir
     BERT_PATH="${model_dir}/model.pt"
     cp "../mt_dnn_models/vocab.txt" $model_dir
     log_file="${model_dir}/log.log"
-    python ../predict.py --train_data_ratio ${train_data_ratio} --dump_to_checkpoints ${dump_to_checkpoints} --stress_tests ${stress_tests} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${test_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr} --multi_gpu_on --debias True
+    python -W ignore ../predict.py --train_data_ratio ${train_data_ratio} --dump_to_checkpoints ${dump_to_checkpoints} --stress_tests ${stress_tests} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${test_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr}
 done

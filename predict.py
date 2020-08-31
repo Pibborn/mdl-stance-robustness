@@ -106,7 +106,6 @@ parser = data_config(parser)
 parser = model_config(parser)
 parser = train_config(parser)
 args = parser.parse_args()
-
 output_dir = args.output_dir
 data_dir = args.data_dir
 args.train_datasets = args.train_datasets.split(',')
