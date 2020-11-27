@@ -1,12 +1,12 @@
 #!/bin/bash
-if [[ $# -ne 4 ]]; then
-  echo "bash run_mt_dnn_all_stance_MTL_seed_loop.sh.sh <gpu> <model_name> <train_data_ratio> <lambda>"
+if [[ $# -ne 6 ]]; then
+  echo "bash run_mt_dnn_all_stance_MTL_seed_loop.sh.sh <gpu> <model_name> <train_data_ratio> <lambda> <basedir> <mmd/debias>"
   echo "<train_data_ratio> in percentage (i.e. 10, 20, 30, ...)!"
   exit 1
 fi
 
 data="arc,argmin,fnc1,ibmcs,iac1,perspectrum,semeval2016t6,semeval2019t7,scd,snopes"
-seeds=("0", "1", "2", "3", "4")
+seeds=("0" "1" "2" "3" "4")
 model=$2 #bert_model_large, mt_dnn_large
 
 prefix="mt-dnn-${data}_ST"
@@ -30,13 +30,15 @@ epochs=5
 max_seq_len=100
 train_data_ratio=$3
 lambda=$4
+basedir=$5
+debiastype=$6
 
 for seed in "${seeds[@]}" ; do
     if [[ $train_data_ratio -eq 100 ]]; then
-        model_dir="../checkpoints/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_lambda${lambda}_${tstr}"
+        model_dir="../${basedir}/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_lambda${lambda}_${tstr}"
     else
-        model_dir="../checkpoints/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_trainratio${train_data_ratio}_lambda${lambda}_${tstr}"
+        model_dir="../${basedir}/${prefix}_seed${seed}_ep${epochs}_${model}_answer_opt${answer_opt}_trainratio${train_data_ratio}_lambda${lambda}_${tstr}"
     fi
     log_file="${model_dir}/log.log"
-    python ../train.py --train_data_ratio ${train_data_ratio} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${train_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr} --debias True --lambda ${lambda}
+    python -W ignore ../train.py --train_data_ratio ${train_data_ratio} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${train_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr} --${debiastype} True --lambda ${lambda}
 done
