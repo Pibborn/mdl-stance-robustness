@@ -5,6 +5,7 @@ import os
 from pprint import pprint
 
 import torch
+import numpy as np
 
 from data_utils.glue_utils import submit, eval_model
 from data_utils.label_map import DATA_META, GLOBAL_MAP, DATA_TYPE, TASK_TYPE, generate_decoder_opt
@@ -99,6 +100,8 @@ def train_config(parser):
     parser.add_argument('--debias_layers', type=int, default=2)
     parser.add_argument('--debias_width', type=int, default=30)
     parser.add_argument('--dump_representations', type=bool, default=False)
+    # mmd
+    parser.add_argument('--mmd', type=bool, default=False)
     return parser
 
 parser = argparse.ArgumentParser()
@@ -173,6 +176,16 @@ def dump_result_files(dataset):
         'perspectrum': dump_general,
         'semeval2019t7': dump_general,
     }[dataset.split("_")[0]]
+
+
+def dump_repr_dict(repr_dict):
+    os.makedirs(output_dir + '/' + 'representations/', exist_ok=True)
+    for dataset_key in repr_dict.keys():
+        dataset_repr_dict = repr_dict[dataset_key]
+        for split in dataset_repr_dict.keys():
+            np.savetxt("{}/representations/repr_{}_{}.csv".format(output_dir, dataset_key, split))
+
+
 
 def main():
     logger.info('Launching the MT-DNN training')
