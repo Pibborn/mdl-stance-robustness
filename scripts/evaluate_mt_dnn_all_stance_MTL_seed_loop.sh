@@ -43,5 +43,5 @@ for seed in "${seeds[@]}" ; do
     BERT_PATH="${model_dir}/model.pt"
     cp "../mt_dnn_models/vocab.txt" $model_dir
     log_file="${model_dir}/log.log"
-    python -W ignore ../predict.py --train_data_ratio ${train_data_ratio} --dump_to_checkpoints ${dump_to_checkpoints} --stress_tests ${stress_tests} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${test_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr}
+    python -W ignore ../predict.py --train_data_ratio ${train_data_ratio} --dump_to_checkpoints ${dump_to_checkpoints} --stress_tests ${stress_tests} --max_seq_len ${max_seq_len} --seed ${seed} --epochs ${epochs} --data_dir ${DATA_DIR} --init_checkpoint ${BERT_PATH} --batch_size ${BATCH_SIZE} --output_dir ${model_dir} --log_file ${log_file} --answer_opt ${answer_opt} --optimizer ${optim} --train_datasets ${test_datasets} --test_datasets ${test_datasets} --grad_clipping ${grad_clipping} --global_grad_clipping ${global_grad_clipping} --learning_rate ${lr} --dump_representations true
 done
