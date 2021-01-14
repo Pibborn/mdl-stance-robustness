@@ -134,8 +134,9 @@ def dump(path, data):
         json.dump(data, f, indent=4, sort_keys=True)
 
 def dump_general(output_dir, epoch, metrics, predictions, golds, set, tasks_config, dataset):
+    timestr = output_dir.rsplit('/')[0].rsplit('_')[0]
     result_dir = "../results/EVAL_ONLY_"+output_dir.rsplit("/",1)[1].rsplit("_", 1)[0].replace("_seed"+str(args.seed), "") \
-                 + "_maxlen" + str(tasks_config['max_seq_len']) + "/"
+                 + "_maxlen" + str(tasks_config['max_seq_len']) + "_tstr_" + timestr + "/"
     file_name = "results_"+dataset+".json"
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
