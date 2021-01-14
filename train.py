@@ -101,7 +101,7 @@ def train_config(parser):
     parser.add_argument('--task_config_path', type=str, default='configs/tasks_config.json')
     # debias subnetwork
     parser.add_argument('--debias', type=bool, default=False)
-    parser.add_argument('--debias_layers', type=int, default=2)
+    parser.add_argument('--debias_layers', type=int, default=3)
     parser.add_argument('--debias_width', type=int, default=30)
     parser.add_argument('--lambda', type=float, default=1.,
                         help='Multiplying factor for the debiasing loss')

@@ -470,6 +470,7 @@ def main():
 
         if args.dump_representations:
             dump_repr_dict(args.output_dir + '/representations/')
+            print('Saved representations at {}'.format(args.output_dir + '/representations/'))
 
 if __name__ == '__main__':
     main()
