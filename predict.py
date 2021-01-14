@@ -99,7 +99,7 @@ def train_config(parser):
     parser.add_argument('--debias', type=bool, default=False)
     parser.add_argument('--debias_layers', type=int, default=2)
     parser.add_argument('--debias_width', type=int, default=30)
-    parser.add_argument('--dump_representations', type=bool, default=False)
+    parser.add_argument('--dump_representations', type=bool, action='store_true')
     # mmd
     parser.add_argument('--mmd', type=bool, default=False)
     return parser
