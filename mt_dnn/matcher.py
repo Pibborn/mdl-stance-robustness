@@ -111,11 +111,16 @@ class SANBertNetwork(nn.Module):
             for p in bert_embeddings.position_embeddings.parameters():
                 p.requires_grad = False
 
-    def forward(self, input_ids, token_type_ids, attention_mask, premise_mask=None, hyp_mask=None, task_id=0):
+    def forward(self, input_ids, token_type_ids, attention_mask, premise_mask=None, hyp_mask=None, task_id=0,
+                extra_layer=-1):
         all_encoder_layers, pooled_output = self.bert(input_ids, token_type_ids, attention_mask)
+        if extra_layer > -1:
+            sequence_output_extra = all_encoder_layers[extra_layer]
         sequence_output = all_encoder_layers[-1]
         if self.bert_pooler is not None:
             pooled_output = self.bert_pooler(sequence_output)
+            if extra_layer > -1:
+                pooled_output_extra = self.bert_pooler(sequence_output_extra)
         decoder_opt = self.decoder_opt[task_id]
         if decoder_opt == 1:
             max_query = hyp_mask.size(1)
@@ -128,6 +133,8 @@ class SANBertNetwork(nn.Module):
             dropped_output = self.dropout_list[task_id](pooled_output)
             logits = self.scoring_list[task_id](dropped_output)
             representation = pooled_output
+        if extra_layer > -1:
+            representation = pooled_output_extra
         if self.opt['debias']:
             x = representation
             for fc_layer in self.debias_proj:

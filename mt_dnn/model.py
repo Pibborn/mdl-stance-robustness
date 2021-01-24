@@ -134,7 +134,7 @@ class MTDNNModel(object):
             inputs.append(None)
         inputs.append(task_id)
         if self.config['debias']:
-            logits, target_repr, debias_logits = self.mnetwork(*inputs)
+            logits, target_repr, debias_logits = self.mnetwork(*inputs, extra_layer=self.config['connectedlayer'])
         else:
             logits, target_repr = self.mnetwork(*inputs)
         if batch_meta['pairwise']:

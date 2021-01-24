@@ -105,6 +105,8 @@ def train_config(parser):
     parser.add_argument('--debias_width', type=int, default=30)
     parser.add_argument('--lambda', type=float, default=1.,
                         help='Multiplying factor for the debiasing loss')
+    parser.add_argument('--connectedlayer', type=int, default=-1,
+                        help='Which BERT layer to connect the debiasing network to')
     # gradient accumulation
     parser.add_argument('--grad_accumulation_step', type=int, default=1)
     parser.add_argument('--dump_representations', type=bool, default=False)
