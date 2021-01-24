@@ -119,8 +119,8 @@ class SANBertNetwork(nn.Module):
         sequence_output = all_encoder_layers[-1]
         if self.bert_pooler is not None:
             pooled_output = self.bert_pooler(sequence_output)
-            if extra_layer > -1:
-                pooled_output_extra = self.bert_pooler(sequence_output_extra)
+        if extra_layer > -1:
+            pooled_output_extra = self.bert_pooler(sequence_output_extra)
         decoder_opt = self.decoder_opt[task_id]
         if decoder_opt == 1:
             max_query = hyp_mask.size(1)
