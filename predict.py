@@ -99,7 +99,8 @@ def train_config(parser):
     parser.add_argument('--debias', type=bool, default=False)
     parser.add_argument('--debias_layers', type=int, default=2)
     parser.add_argument('--debias_width', type=int, default=30)
-    parser.add_argument('--dump_representations', type=bool, action='store_true')
+    parser.add_argument('--dump_representations', action='store_true')
+    parser.add_argument('--connectedlayer', type=int, default=-1, help='Which layer the debiasing net is connected to')
     # mmd
     parser.add_argument('--mmd', type=bool, default=False)
     return parser
